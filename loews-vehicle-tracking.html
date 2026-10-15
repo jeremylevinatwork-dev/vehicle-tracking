@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en" data-build="veh-20261015-1730">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Vehicles - Loews</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+table { background: white; }
+body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: #2d3748; color: #1a202c; line-height: 1.5; overflow-x: hidden; }
+.header { background: linear-gradient(rgba(26,54,93,0.88), rgba(45,74,122,0.88)), url('hotels-header-bg.jpg') center/cover no-repeat; color: white; padding: 24px 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.5px; }
+.header p { font-size: 13px; opacity: 0.85; text-transform: uppercase; letter-spacing: 1.5px; }
+.header .gold-bar { height: 3px; background: linear-gradient(90deg, #d4af37, #f6e27a, #d4af37); margin-top: 12px; }
+.controls { padding: 10px 12px; background: white; border-bottom: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.cbtn { flex: 1 1 140px; padding: 10px 4px; background: #2d4a7a; color: white; border: none; border-radius: 8px; font-size: 13.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.search { width: 100%; padding: 10px 14px; font-size: 15px; border: 2px solid #e2e8f0; border-radius: 10px; margin-bottom: 8px; transition: border-color 0.2s; } .search:focus { outline: none; border-color: #2d4a7a; }
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.filter-row select { padding: 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 8px; flex: 1 1 160px; }
+.status { padding: 8px 15px; font-size: 13px; color: #666; }
+.status.online { color: #0a7d2c; }
+.status.offline { color: #c53030; }
+.stats-bar { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 12px 10px; background: white; border-bottom: 1px solid #e2e8f0; }
+.stat-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; color: #ffffff; }
+.hotel-section { margin: 8px 10px; }
+.hotel-header { background: linear-gradient(135deg, #2d4a7a 0%, #3a5a8c 100%); color: white; padding: 14px 18px; border-radius: 10px; font-size: 16px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #d4af37; }
+.hotel-header:hover { background: #1a365d; }
+.hotel-count { background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 20px; font-size: 12px; }
+.hotel-body { display: none; }
+.hotel-section.expanded .hotel-body { display: block; }
+.hotel-section.expanded .hotel-header { border-radius: 8px 8px 0 0; }
+.veh-grid { background: white; border-radius: 0 0 8px 8px; padding: 10px 15px; display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.veh-chip { font-family: 'SF Mono', 'Consolas', monospace; font-size: 13px; font-weight: 500; padding: 6px 12px; background: #ffffff; border: 1px solid #cbd5e0; border-radius: 6px; white-space: nowrap; cursor: pointer; transition: all 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.veh-chip:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.veh-chip.st-inservice { background:#2f855a; border-color:#276749; color:#ffffff; font-weight:700; }
+.veh-chip.st-out { background:#e53e3e; border-color:#9b2c2c; color:#ffffff; font-weight:700; }
+.veh-chip.st-shop { background:#dd6b20; border-color:#9c4221; color:#ffffff; font-weight:700; }
+.veh-chip.st-inspected { background:#526d82; border-color:#334e68; color:#ffffff; font-weight:700; }
+.legend-dot { display:inline-block; width:11px; height:11px; border-radius:3px; border:1.5px solid #999; vertical-align:-1px; margin-right:4px; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; }
+.modal-content { background: white; margin: 8% auto; padding: 20px; border-radius: 12px; max-width: 400px; max-height: 80vh; overflow-y: auto; }
+.modal-content h3 { margin-bottom: 12px; font-size: 18px; }
+.modal-content p { margin: 6px 0; font-size: 14px; }
+.modal-content .label { font-weight: bold; color: #666; font-size: 12px; }
+.modal-close { float: right; font-size: 22px; cursor: pointer; color: #999; }
+@media print { .controls, .header, .modal, .no-print, .stats-bar { display: none !important; } body { background: white; } }
+</style>
+</head>
+<body>
+<button id="logoutBtn" onclick="doLogout()" style="display:none;position:fixed;top:12px;right:12px;z-index:1500;padding:10px 18px;background:#c53030;color:white;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);">🚪 Logout</button>
+
+<div id="loginOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#1a365d url('hotels-bg.jpg') no-repeat center center;background-size:cover;z-index:1000;display:flex;align-items:center;justify-content:center;">
+<div style="background:white;padding:40px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);max-width:350px;width:90%;text-align:center;">
+<div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:16px;"><img src="loews-logo.jpg" alt="Loews Hotels & Co" style="max-height:40px;max-width:120px;"><img src="sciens-logo.jpg" alt="Sciens" style="max-height:40px;max-width:120px;"></div>
+<h2 style="color:#1a365d;margin-bottom:8px;">🚗 Security Vehicles</h2>
+<p style="color:#666;font-size:13px;margin-bottom:20px;">Loews Security Systems</p>
+<p style="font-size:14px;margin-bottom:8px;">Select Your Name</p>
+<select id="nameInput" style="width:100%;padding:14px;font-size:16px;border:2px solid #e2e8f0;border-radius:10px;margin-bottom:12px;">
+<option value="">-- Choose --</option>
+<option>Jeremy Levin</option>
+<option>Justin Messenger</option>
+<option>Sean Forester</option>
+<option>Dominique Black</option>
+<option>Alexander Duff</option>
+</select>
+<p style="font-size:14px;margin-bottom:8px;">Enter Team PIN</p>
+<input type="password" id="pinInput" inputmode="numeric" style="width:100%;padding:14px;font-size:18px;text-align:center;border:2px solid #e2e8f0;border-radius:10px;margin-bottom:12px;letter-spacing:4px;" placeholder="••••" maxlength="10">
+<button onclick="doLogin()" style="width:100%;padding:14px;background:#1a365d;color:white;border:none;border-radius:10px;font-size:16px;cursor:pointer;">Login</button>
+<p id="pinErr" style="color:#c53030;font-size:13px;margin-top:8px;display:none;">Incorrect PIN</p>
+</div>
+</div>
+<script>
+
+
+function showLoginLog(){
+  const log = JSON.parse(localStorage.getItem('vehLoginLog')||'[]');
+  let h = '<h3>Login History</h3>';
+  if(!log.length) h += '<p>No logins recorded yet.</p>';
+  else {
+    h += '<table style="width:100%;border-collapse:collapse;font-size:13px;"><tr style="background:#1a365d;color:white;"><th style="padding:8px;text-align:left;">Name</th><th style="padding:8px;text-align:left;">Date/Time</th></tr>';
+    log.forEach(e=>{
+      const d = new Date(e.at);
+      h += '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:8px;">'+e.name+'</td><td style="padding:8px;">'+d.toLocaleString()+'</td></tr>';
+    });
+    h += '</table>';
+  }
+  const m = document.createElement('div');
+  m.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2000;display:flex;align-items:center;justify-content:center;';
+  m.innerHTML = '<div style="background:white;padding:24px;border-radius:12px;max-width:500px;width:90%;max-height:80%;overflow:auto;">'+h+'<br><button onclick="this.parentElement.parentElement.remove()" style="padding:10px 20px;background:#1a365d;color:white;border:none;border-radius:8px;cursor:pointer;">Close</button></div>';
+  document.body.appendChild(m);
+}
+
+function doLogout(){
+  try{ sessionStorage.removeItem('vehAuth'); sessionStorage.removeItem('vehUser'); }catch(e){}
+  try{ localStorage.removeItem('loewsAuth'); localStorage.removeItem('loewsUser'); }catch(e){}
+  location.reload();
+}
+
+function doLogin(){
+  const n=document.getElementById('nameInput').value;
+  const v=document.getElementById('pinInput').value;
+  if(!n){ document.getElementById('pinErr').textContent='Please select your name'; document.getElementById('pinErr').style.display='block'; return; }
+  if(v===(USER_PINS[n]||'')){
+    document.getElementById('loginOverlay').style.display='none';
+    document.getElementById('logoutBtn').style.display='block';
+    try{
+      sessionStorage.setItem('vehAuth','1');
+      sessionStorage.setItem('vehUser',n);
+      const log = JSON.parse(localStorage.getItem('vehLoginLog')||'[]');
+      log.unshift({name:n, at:new Date().toISOString()});
+      localStorage.setItem('vehLoginLog', JSON.stringify(log.slice(0,100)));
+    }catch(e){}
+  }
+  else{ document.getElementById('pinErr').textContent='Incorrect PIN for '+n; document.getElementById('pinErr').style.display='block'; }
+}
+document.getElementById('pinInput').addEventListener('keypress',e=>{ if(e.key==='Enter') doLogin(); });
+// Auto-skip if already authed this session
+try{ if(sessionStorage.getItem('vehAuth')==='1'){ document.getElementById('loginOverlay').style.display='none'; document.getElementById('logoutBtn').style.display='block'; } }catch(e){}
+// Single sign-on from Loews portal
+try{ if(localStorage.getItem('loewsAuth')==='1'){ document.getElementById('loginOverlay').style.display='none'; document.getElementById('logoutBtn').style.display='block'; try{sessionStorage.setItem('vehAuth','1'); var _pu=localStorage.getItem('loewsUser'); if(_pu) sessionStorage.setItem('vehUser',_pu);}catch(e){} } }catch(e){}
+try{
+if(window.self!==window.top){
+var st=document.createElement('style');
+st.textContent='#logoutBtn{display:none!important}';
+document.head.appendChild(st);
+}
+}catch(e){}
+</script>
+
+<div class="header"><div style="display:flex;justify-content:center;align-items:center;gap:16px;margin-bottom:10px;"><img src="loews-logo.jpg" alt="Loews Hotels & Co" style="max-height:45px;max-width:140px;background:white;padding:6px;border-radius:6px;"><img src="sciens-logo.jpg" alt="Sciens Building Solutions" style="max-height:45px;max-width:140px;background:white;padding:6px;border-radius:6px;"></div><h1>🚗 Security Vehicles</h1><p>Loews Security Systems</p><div class="gold-bar"></div></div>
+<div style="background:#f7f3e3;text-align:center;padding:7px 10px;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:bold;color:#000;font-size:15px;letter-spacing:.4px;border-bottom:2px solid #d4af37;">Power by: NDL systems tech</div>
+<div class="controls">
+<input type="text" class="search" id="search" placeholder="Search vehicle, type, assigned to, or notes...">
+<div class="filter-row">
+<select id="propFilter"><option value="">All Properties</option></select>
+<select id="statusFilter">
+<option value="">All Status</option>
+<option value="In Service">In Service</option>
+<option value="Out of Service">Out of Service</option>
+<option value="In the Shop">In the Shop</option>
+<option value="Inspected">Inspected</option>
+</select>
+</div>
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#444;">
+<span><span class="legend-dot" style="background:#2f855a;border-color:#276749"></span>In Service</span>
+<span><span class="legend-dot" style="background:#e53e3e;border-color:#9b2c2c"></span>Out of Service</span>
+<span><span class="legend-dot" style="background:#dd6b20;border-color:#9c4221"></span>In the Shop</span>
+<span><span class="legend-dot" style="background:#526d82;border-color:#334e68"></span>Inspected</span>
+</div>
+<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+<button onclick="openAdd()" class="cbtn">➕ Add Vehicle</button>
+<button onclick="printInventory()" class="cbtn">🖨️ Print Inventory</button>
+<button onclick="doBackup()" class="cbtn">💾 Backup</button>
+</div>
+</div>
+<div class="status" id="status">Loading...</div>
+<div class="stats-bar" id="statsBar"></div>
+<div id="content"></div>
+<div class="modal" id="modal"><div class="modal-content">
+<span class="modal-close" onclick="closeModal()">&times;</span>
+<h3 id="modalTitle">Vehicle</h3><div id="modalBody"></div>
+</div></div>
+<script>
+const USER_PINS = {
+  'Jeremy Levin': '1245',
+  'Sean Forester': '3867',
+  'Dominique Black': '2195',
+  'Alexander Duff': '0132',
+  'Justin Messenger': '5132'
+};
+const SUPABASE_URL = 'https://qxqrwusaynfqadjfqswe.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_2ba9yzEA89uqXHJ6v-_cQg_AmwwEfFF';
+const HOTEL_NAMES = {'PBH':'Loews Portofino Bay Hotel','HRH':'Hard Rock Hotel','RPR':'Loews Royal Pacific Resort','SFR':'Loews Sapphire Falls Resort','AVA':'Universal Aventura Hotel','CBBR':'Universal Cabana Bay Beach Resort','ESS':"Universal's Endless Summer Resort - Surfside",'ESD':"Universal's Endless Summer Resort - Dockside",'SNR':'Universal Stella Nova Resort','TLR':'Universal Terra Luna Resort','HGH':'Universal Helios Grand Hotel','LKWD':'Lakewood Regional Office'};
+const VEH_TYPES = ['Golf Cart','SUV','Truck','Van','Bicycle','Other'];
+const VEH_STATUSES = ['In Service','Out of Service','In the Shop','Inspected'];
+let vehicles = [], propFilter = '', statusFilter = '', searchTerm = '', editingUid = null;
+var PROP_ORDER = ['PBH','HRH','RPR','CBBR','SFR','AVA','ESS','ESD','SNR','TLR','HGH','LKWD'];
+var vehTs = 0;
+let expandedProps = new Set();
+
+async function loadVehicles() {
+  const statusEl = document.getElementById('status');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/app_records?id=eq.vehicle-state&select=data`, {headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});
+    const json = await res.json();
+    const data = json[0]?.data || {};
+    const cloudVehs = Array.isArray(data.vehicles) ? data.vehicles : [];
+    const cloudTs = data._ts || 0;
+    let localVehs = []; try { localVehs = JSON.parse(localStorage.getItem('vehicle_cache')||'[]'); } catch(e) {}
+    const localTs = parseInt(localStorage.getItem('vehicle_cache_ts')||'0') || 0;
+    if(cloudVehs.length === 0 && localVehs.length){ vehicles = localVehs; vehTs = localTs; }
+    else if(localVehs.length > cloudVehs.length + 5 && localTs > cloudTs){ vehicles = localVehs; vehTs = localTs; }
+    else { vehicles = cloudVehs; vehTs = cloudTs; }
+    try { localStorage.setItem('vehicle_cache', JSON.stringify(vehicles)); localStorage.setItem('vehicle_cache_ts', String(vehTs)); } catch(e) {}
+    statusEl.textContent = `Online — ${vehicles.length} vehicles`; statusEl.className = 'status online';
+  } catch(err) {
+    try { vehicles = JSON.parse(localStorage.getItem('vehicle_cache')||'[]');
+      statusEl.textContent = `Offline — ${vehicles.length} cached`; statusEl.className = 'status offline';
+    } catch(e) { document.getElementById('content').innerHTML = '<div style="padding:20px;color:red;">Failed to load</div>'; return; }
+  }
+  const props = PROP_ORDER.concat([...new Set(vehicles.map(v=>v.prop))].filter(h=>!PROP_ORDER.includes(h)).sort());
+  document.getElementById('propFilter').innerHTML = '<option value="">All Properties</option>' + props.map(h=>`<option value="${h}">${h}</option>`).join('');
+  render();
+}
+function toggleProp(h) { const el=document.getElementById('prop-'+h); if(el){ el.classList.toggle('expanded'); if(el.classList.contains('expanded')) expandedProps.add(h); else expandedProps.delete(h); } }
+function statusClass(s){ return {'In Service':'st-inservice','Out of Service':'st-out','In the Shop':'st-shop','Inspected':'st-inspected'}[s]||'st-inspected'; }
+function statusColor(s){ return {'In Service':'#2f855a','Out of Service':'#e53e3e','In the Shop':'#dd6b20','Inspected':'#526d82'}[s]||'#526d82'; }
+function fmtMiles(m){ if(m===''||m==null||isNaN(Number(m))) return '—'; return Number(m).toLocaleString('en-US'); }
+function fmtDate(d){ if(!d) return '—'; const dt=new Date(d+'T12:00:00'); if(isNaN(dt)) return escapeHtml(String(d)); return dt.toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'}); }
+function renderStats(){
+  const counts = {}; VEH_STATUSES.forEach(s=>counts[s]=0);
+  vehicles.forEach(v=>{ const s=v.status||'In Service'; counts[s]=(counts[s]||0)+1; });
+  let h = '<span class="stat-pill" style="background:#1a365d;">Total: '+vehicles.length+'</span>';
+  VEH_STATUSES.forEach(s=>{ h += '<span class="stat-pill" style="background:'+statusColor(s)+';">'+s+': '+counts[s]+'</span>'; });
+  document.getElementById('statsBar').innerHTML = h;
+}
+function render() {
+  renderStats();
+  let filtered = vehicles;
+  if (propFilter) filtered = filtered.filter(v=>v.prop===propFilter);
+  if (statusFilter) filtered = filtered.filter(v=>v.status===statusFilter);
+  if (searchTerm) { const t=searchTerm.toLowerCase(); filtered=filtered.filter(v=>(v.id||'').toLowerCase().includes(t)||(v.type||'').toLowerCase().includes(t)||(v.assignedTo||'').toLowerCase().includes(t)||(v.notes||'').toLowerCase().includes(t)); }
+  const byProp = {}; filtered.forEach(v=>{ const h=v.prop||'?'; (byProp[h]=byProp[h]||[]).push(v); });
+  const unfiltered = !propFilter && !statusFilter && !searchTerm;
+  let orderedKeys = PROP_ORDER.filter(h=> unfiltered || byProp[h]);
+  Object.keys(byProp).sort().forEach(h=>{ if(!orderedKeys.includes(h)) orderedKeys.push(h); });
+  if(unfiltered) PROP_ORDER.forEach(h=>{ if(!byProp[h]) byProp[h]=[]; });
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px;padding:0 8px;">';
+  orderedKeys.forEach(h=>{
+    const list = byProp[h].sort((a,b)=>(a.id||'').localeCompare(b.id||'', undefined, {numeric:true}));
+    html += `<div class="hotel-section${expandedProps.has(h)?' expanded':''}" id="prop-${h}"><div class="hotel-header" onclick="toggleProp('${h}')"><span>${h}</span><span class="hotel-count">${list.length}</span></div><div class="hotel-body"><div class="veh-grid">`;
+    list.forEach(v=>{ html+=`<span class="veh-chip ${statusClass(v.status)}" onclick="event.stopPropagation();openEdit('${v.uid}')" title="Click to edit — ${escapeHtml(v.status||'In Service')}${v.assignedTo?' · '+escapeHtml(v.assignedTo):''}">${escapeHtml(v.id||'?')}${(v.notes&&String(v.notes).trim())?' 📝':''}</span>`; });
+    html += '</div></div></div>';
+  });
+  document.getElementById('content').innerHTML = html+'</div>';
+}
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+/* ---------- Photo shrink (same pattern as Camera app) ---------- */
+function shrinkPhoto(file, cb){
+  function fallback(){
+    var url, img=new Image();
+    try{ url=URL.createObjectURL(file); }catch(e){ rawRead(); return; }
+    img.onload=function(){
+      try{
+        var max=1024, w=img.naturalWidth||0, h=img.naturalHeight||0;
+        if(!w||!h){ URL.revokeObjectURL(url); rawRead(); return; }
+        var scale=Math.min(1, max/Math.max(w,h));
+        var cv=document.createElement('canvas');
+        cv.width=Math.round(w*scale); cv.height=Math.round(h*scale);
+        cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+        URL.revokeObjectURL(url);
+        cb(cv.toDataURL('image/jpeg',0.68));
+      }catch(e){ try{URL.revokeObjectURL(url);}catch(err){} rawRead(); }
+    };
+    img.onerror=function(){ try{URL.revokeObjectURL(url);}catch(e){} rawRead(); };
+    img.src=url;
+  }
+  function rawRead(){ var r=new FileReader(); r.onload=function(ev){ cb(ev.target.result); }; r.readAsDataURL(file); }
+  try{
+    if(window.createImageBitmap){
+      createImageBitmap(file,{resizeWidth:1024,resizeQuality:'medium'}).then(function(bmp){
+        try{
+          var cv=document.createElement('canvas'); cv.width=bmp.width; cv.height=bmp.height;
+          cv.getContext('2d').drawImage(bmp,0,0);
+          cb(cv.toDataURL('image/jpeg',0.68));
+        }catch(e){ fallback(); }
+      }, function(){ fallback(); });
+    } else fallback();
+  }catch(e){ fallback(); }
+}
+function handlePhotoSelect(input, uid){
+  const file = input.files[0];
+  if(!file) return;
+  shrinkPhoto(file, function(dataUrl){
+    const veh = vehicles.find(v=>v.uid===uid);
+    if(veh){
+      if(!veh.photos) veh.photos = [];
+      veh.photos.push({name:file.name, type:(dataUrl.match(/^data:([^;]+)/)||[])[1]||file.type, size:file.size, data:dataUrl, uploadedAt:new Date().toISOString(), uploadedBy:(function(){try{return sessionStorage.getItem('vehUser')||'unknown';}catch(e){return 'unknown';}})()});
+      saveToCloud();
+      refreshPhotoList(uid);
+    }
+  });
+}
+function refreshPhotoList(uid){
+  const veh = vehicles.find(v=>v.uid===uid);
+  const div = document.getElementById('photoList');
+  if(!div || !veh) return;
+  if(!veh.photos || !veh.photos.length){
+    div.innerHTML = '<p style="color:#999;font-size:13px;">No photos yet.</p>';
+    return;
+  }
+  let h = '';
+  veh.photos.forEach((f,i)=>{
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;background:#f7fafc;border-radius:6px;margin-bottom:6px;"><span style="display:flex;align-items:center;gap:8px;font-size:13px;">'+(f.data&&f.data.indexOf('data:image')===0?'<img src="'+f.data+'" style="width:52px;height:40px;object-fit:cover;border-radius:4px;border:1px solid #cbd5e0;">':'📎')+escapeHtml(f.name)+' <span style="color:#999;">('+((f.size||0)/1024).toFixed(1)+'KB)</span></span><button onclick="removePhoto(\''+uid+'\','+i+')" style="padding:6px 12px;background:#c53030;color:white;border:none;border-radius:4px;font-size:12px;cursor:pointer;">Remove</button></div>';
+  });
+  div.innerHTML = h;
+}
+function removePhoto(uid, idx){
+  const veh = vehicles.find(v=>v.uid===uid);
+  if(veh && veh.photos){
+    veh.photos.splice(idx,1);
+    saveToCloud();
+    refreshPhotoList(uid);
+  }
+}
+
+/* ---------- Cloud sync (guarded push — same pattern as Camera app) ---------- */
+async function pushVehicles(){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/app_records?id=eq.vehicle-state&select=data`,{headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});
+  const cur = (await r.json())[0]?.data || {};
+  const cloudVehs = Array.isArray(cur.vehicles) ? cur.vehicles : [];
+  if(cloudVehs.length > vehicles.length + 5){
+    const have = new Set(vehicles.map(v=>v.uid));
+    const missing = cloudVehs.filter(v=>v && v.uid && !have.has(v.uid));
+    if(missing.length) vehicles = vehicles.concat(missing);
+  }
+  vehTs = Date.now();
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/app_records?id=eq.vehicle-state`,{method:'PATCH',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({data:{...cur,vehicles,_ts:vehTs}})});
+  if(res && !res.ok) throw new Error(res.status);
+  try{ localStorage.setItem('vehicle_cache',JSON.stringify(vehicles)); localStorage.setItem('vehicle_cache_ts',String(vehTs)); }catch(e){}
+  return res;
+}
+async function saveToCloud(){
+  try{ await pushVehicles(); }
+  catch(err){ try{localStorage.setItem('vehicle_cache',JSON.stringify(vehicles));}catch(e){} }
+}
+
+/* ---------- Delete (Jeremy & Justin only — same gate as Camera) ---------- */
+function canDeleteVehicle(){
+  var a='', b='';
+  try{ a=sessionStorage.getItem('vehUser')||''; }catch(e){}
+  try{ b=localStorage.getItem('loewsUser')||''; }catch(e){}
+  return a==='Jeremy Levin' || a==='Justin Messenger' || b==='Jeremy Levin' || b==='Justin Messenger';
+}
+async function deleteVehicle(uid){
+  if(!canDeleteVehicle()){ alert('Only Jeremy Levin and Justin Messenger can delete vehicles.'); return; }
+  const veh=vehicles.find(v=>v.uid===uid); if(!veh) return;
+  if(!confirm('Delete vehicle '+(veh.id||'')+' ('+(veh.prop||'')+')?\n\nThis removes it for the whole team and cannot be undone.')) return;
+  vehicles = vehicles.filter(v=>v.uid!==uid);
+  try{ await pushVehicles(); }catch(e){}
+  closeModal(); render();
+}
+
+/* ---------- Add / Edit ---------- */
+function propOptions(sel){ return PROP_ORDER.map(h=>`<option ${sel===h?'selected':''}>${h}</option>`).join(''); }
+function typeOptions(sel){ return VEH_TYPES.map(t=>`<option ${sel===t?'selected':''}>${t}</option>`).join(''); }
+function statusOptions(sel){ return VEH_STATUSES.map(s=>`<option ${sel===s?'selected':''}>${s}</option>`).join(''); }
+function openAdd(){
+  editingUid='new';
+  document.getElementById('modalTitle').textContent='Add New Vehicle';
+  document.getElementById('modalBody').innerHTML=`
+    <p><span class="label">Vehicle / Unit *</span><br><input id="eId" placeholder="e.g. Cart 12" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;"></p>
+    <p><span class="label">Type</span><br><select id="eType" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">${typeOptions('Golf Cart')}</select></p>
+    <p><span class="label">Property *</span><br><select id="eProp" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">${propOptions('PBH')}</select></p>
+    <p><span class="label">Status</span><br><select id="eStatus" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">${statusOptions('In Service')}</select></p>
+    <p><span class="label">Assigned To</span><br><input id="eAssigned" placeholder="e.g. Officer name or post" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;"></p>
+    <p><span class="label">Mileage</span><br><input id="eMileage" type="number" min="0" placeholder="e.g. 45210" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;"></p>
+    <p><span class="label">Last Inspection</span><br><input id="eLastInsp" type="date" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;"></p>
+    <p><span class="label">Notes</span><br><textarea id="eNotes" rows="2" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;"></textarea></p>
+    <p><button onclick="saveNew()" style="background:#0a7d2c;color:white;padding:10px;border:none;border-radius:6px;width:100%;font-size:15px;cursor:pointer;">Add Vehicle</button></p><p id="saveMsg"></p>`;
+  document.getElementById('modal').style.display='block';
+}
+async function saveNew(){
+  const msg=document.getElementById('saveMsg');
+  const vid=document.getElementById('eId').value.trim();
+  if(!vid){ msg.textContent='Vehicle / unit name is required.'; msg.style.color='red'; return; }
+  const milesRaw=document.getElementById('eMileage').value;
+  const newVeh={ uid:'veh-'+Date.now()+'-'+Math.random().toString(36).slice(2,7), id:vid, type:document.getElementById('eType').value, prop:document.getElementById('eProp').value, status:document.getElementById('eStatus').value, assignedTo:document.getElementById('eAssigned').value.trim(), mileage:milesRaw===''?'':Number(milesRaw), lastInspection:document.getElementById('eLastInsp').value, notes:document.getElementById('eNotes').value, photos:[] };
+  msg.textContent='Adding...'; msg.style.color='#666';
+  vehicles.push(newVeh);
+  try{
+    await pushVehicles();
+    try{localStorage.setItem('vehicle_cache',JSON.stringify(vehicles));}catch(e){}
+    msg.textContent='✓ Vehicle added!'; msg.style.color='green';
+    setTimeout(()=>{closeModal();render();},700);
+  }catch(err){ msg.textContent='Failed: '+err.message+' (kept locally)'; msg.style.color='red'; try{localStorage.setItem('vehicle_cache',JSON.stringify(vehicles));}catch(e){} setTimeout(()=>{closeModal();render();},1200); }
+}
+function quickSetStatus(s){
+  const sel=document.getElementById('eStatus'); if(!sel) return;
+  sel.value=s;
+  saveEdit();
+}
+function openEdit(uid){
+  const veh=vehicles.find(v=>v.uid===uid); if(!veh) return; editingUid=uid;
+  document.getElementById('modalTitle').textContent='Edit '+(veh.id||'');
+  document.getElementById('modalBody').innerHTML=`
+    <p><span class="label">Vehicle / Unit</span><br><input id="eId" value="${escapeHtml(veh.id||'')}" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;"></p>
+    <p><span class="label">Type</span><br><select id="eType" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">${typeOptions(veh.type||'Golf Cart')}</select></p>
+    <p><span class="label">Property</span><br><select id="eProp" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">${propOptions(veh.prop||'PBH')}</select></p>
+    <p><span class="label">Status</span><br><select id="eStatus" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">${statusOptions(veh.status||'In Service')}</select></p>
+    <p><span class="label">Set the color — tap one</span><br>
+    <span style="display:flex;gap:6px;flex-wrap:wrap;">
+    <button type="button" onclick="quickSetStatus('In Service')" style="flex:1 1 40%;padding:11px 6px;background:#2f855a;border:2px solid #276749;color:#ffffff;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🟢 In Service</button>
+    <button type="button" onclick="quickSetStatus('Out of Service')" style="flex:1 1 40%;padding:11px 6px;background:#e53e3e;border:2px solid #9b2c2c;color:#ffffff;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🔴 Out of Service</button>
+    <button type="button" onclick="quickSetStatus('In the Shop')" style="flex:1 1 40%;padding:11px 6px;background:#dd6b20;border:2px solid #9c4221;color:#ffffff;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🟠 In the Shop</button>
+    <button type="button" onclick="quickSetStatus('Inspected')" style="flex:1 1 40%;padding:11px 6px;background:#526d82;border:2px solid #334e68;color:#ffffff;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Inspected</button>
+    </span></p>
+    <p><span class="label">Assigned To</span><br><input id="eAssigned" value="${escapeHtml(veh.assignedTo||'')}" placeholder="e.g. Officer name or post" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;"></p>
+    <p><span class="label">Mileage</span><br><input id="eMileage" type="number" min="0" value="${veh.mileage==null?'':veh.mileage}" placeholder="e.g. 45210" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;"></p>
+    <p><span class="label">Last Inspection</span><br><input id="eLastInsp" type="date" value="${escapeHtml(veh.lastInspection||'')}" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;"></p>
+    <p><span class="label">Notes</span><br><textarea id="eNotes" rows="2" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">${escapeHtml(veh.notes||'')}</textarea></p>
+    <p><span class="label">📸 Photos</span><br><div id="photoList" style="margin-bottom:8px;"></div><label style="display:block;padding:10px;background:#0a7d2c;color:white;border-radius:6px;cursor:pointer;font-size:14px;text-align:center;">📸 Upload Photo<input type="file" accept="image/*" onchange="handlePhotoSelect(this,'${veh.uid}')" style="display:none;"></label></p>
+    <p><button onclick="saveEdit()" style="background:#2d4a7a;color:white;padding:10px;border:none;border-radius:6px;width:100%;font-size:15px;cursor:pointer;">Save</button></p>${canDeleteVehicle()?'<p><button onclick="deleteVehicle(\''+veh.uid+'\')" style="width:100%;padding:10px;background:#fff5f5;color:#9b2c2c;border:1.5px solid #c53030;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">🗑 Delete Vehicle (Jeremy &amp; Justin only)</button></p>':''}<p id="saveMsg"></p>`;
+  document.getElementById('modal').style.display='block';
+  setTimeout(()=>refreshPhotoList(uid), 100);
+}
+function closeModal(){ document.getElementById('modal').style.display='none'; editingUid=null; }
+async function saveEdit(){
+  const veh=vehicles.find(v=>v.uid===editingUid); if(!veh) return;
+  const msg=document.getElementById('saveMsg'); msg.textContent='Saving...';
+  veh.id=document.getElementById('eId').value; veh.type=document.getElementById('eType').value;
+  veh.prop=document.getElementById('eProp').value; veh.status=document.getElementById('eStatus').value;
+  veh.assignedTo=document.getElementById('eAssigned').value; const milesRaw=document.getElementById('eMileage').value; veh.mileage=milesRaw===''?'':Number(milesRaw);
+  veh.lastInspection=document.getElementById('eLastInsp').value; veh.notes=document.getElementById('eNotes').value;
+  try {
+    await pushVehicles();
+    try{localStorage.setItem('vehicle_cache',JSON.stringify(vehicles));}catch(e){}
+    msg.textContent='Saved!'; msg.style.color='green'; setTimeout(()=>{closeModal();render();},700);
+  } catch(err){ msg.textContent='Save failed: '+err.message; msg.style.color='red'; }
+}
+window.onclick=e=>{ if(e.target===document.getElementById('modal')) closeModal(); };
+document.getElementById('search').addEventListener('input',e=>{searchTerm=e.target.value;render();});
+document.getElementById('propFilter').addEventListener('change',e=>{propFilter=e.target.value;render();});
+document.getElementById('statusFilter').addEventListener('change',e=>{statusFilter=e.target.value;render();});
+
+/* ---------- Print inventory sheet ---------- */
+function printInventory(){
+  const byProp = {};
+  vehicles.forEach(v=>{ const h=v.prop||'?'; (byProp[h]=byProp[h]||[]).push(v); });
+  let keys = PROP_ORDER.filter(h=>byProp[h]);
+  Object.keys(byProp).sort().forEach(h=>{ if(!keys.includes(h)) keys.push(h); });
+  let h='<div style="max-width:900px;margin:0 auto;background:white;padding:26px 30px;border-radius:8px;">';
+  h+='<div style="border-bottom:4px solid #b7791f;padding-bottom:10px;margin-bottom:14px;"><div style="font-size:12px;letter-spacing:2px;color:#b7791f;font-weight:700;">LOEWS HOTELS · SECURITY SYSTEMS TECHNOLOGY</div>'
+    +'<h2 style="margin:4px 0 2px;color:#1a365d;">🚗 Security Vehicle Inventory</h2>'
+    +'<div style="color:#4a5568;font-size:14px;">'+vehicles.length+' vehicles · Printed '+new Date().toLocaleString()+'</div></div>';
+  if(!vehicles.length) h+='<p style="color:#718096;">No vehicles yet. Tap ➕ Add Vehicle to put the first one in.</p>';
+  keys.forEach(k=>{
+    const list = byProp[k].slice().sort((a,b)=>(a.id||'').localeCompare(b.id||'', undefined, {numeric:true}));
+    h += '<h3 style="color:#1a365d;border-bottom:2px solid #b7791f;padding-bottom:4px;margin:18px 0 10px;">'+escapeHtml(HOTEL_NAMES[k]||k)+' ('+k+') <span style="color:#718096;font-size:13px;">— '+list.length+'</span></h3>';
+    h += '<table style="width:100%;border-collapse:collapse;font-size:13.5px;"><tr style="background:#1a365d;color:white;"><th style="padding:7px 9px;text-align:left;">Vehicle</th><th style="padding:7px 9px;text-align:left;">Type</th><th style="padding:7px 9px;text-align:left;">Status</th><th style="padding:7px 9px;text-align:left;">Assigned To</th><th style="padding:7px 9px;text-align:right;">Mileage</th><th style="padding:7px 9px;text-align:left;">Last Inspection</th><th style="padding:7px 9px;text-align:left;">Notes</th></tr>';
+    list.forEach(v=>{
+      h += '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:7px 9px;font-weight:600;">'+escapeHtml(v.id||'')+'</td><td style="padding:7px 9px;">'+escapeHtml(v.type||'')+'</td><td style="padding:7px 9px;"><span style="display:inline-block;padding:2px 9px;border-radius:12px;background:'+statusColor(v.status)+';color:#fff;font-weight:700;font-size:12px;">'+escapeHtml(v.status||'')+'</span></td><td style="padding:7px 9px;">'+escapeHtml(v.assignedTo||'')+'</td><td style="padding:7px 9px;text-align:right;">'+fmtMiles(v.mileage)+'</td><td style="padding:7px 9px;">'+fmtDate(v.lastInspection)+'</td><td style="padding:7px 9px;">'+escapeHtml(v.notes||'')+'</td></tr>';
+    });
+    h += '</table>';
+  });
+  h+='<p style="margin-top:22px;font-size:12px;color:#718096;border-top:1px solid #e2e8f0;padding-top:8px;">Produced by: JHNL Security Tech</p>';
+  h+='<p class="no-print" style="margin-top:14px;text-align:center;"><button onclick="window.print()" style="padding:12px 28px;background:#1a365d;color:white;border:none;border-radius:6px;font-size:16px;cursor:pointer;">🖨️ Print</button> <button onclick="render()" style="padding:12px 28px;background:#666;color:white;border:none;border-radius:6px;font-size:16px;cursor:pointer;">Back</button></p>';
+  h+='</div>';
+  document.getElementById('content').innerHTML=h;
+  window.scrollTo(0,0);
+}
+function doBackup(){
+  const data={ exportedAt:new Date().toISOString(), exportedBy:(function(){try{return sessionStorage.getItem('vehUser')||'unknown';}catch(e){return 'unknown';}})(), count:vehicles.length, vehicles:vehicles };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='vehicle-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+loadVehicles();
+</script>
+<div style="text-align:center;padding:20px;color:#666;font-size:12px;margin-top:30px;" class="no-print">Powered by Norman D Levin · Produced by: JHNL Security Tech</div>
+<script>
+try{
+var curB=document.documentElement.getAttribute('data-build');
+if(curB && sessionStorage.getItem('vcb')!==curB){
+  fetch(location.pathname+'?_cb='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){
+    sessionStorage.setItem('vcb',curB);
+    var m=t.match(/data-build="([^"]+)"/);
+    if(m && m[1]!==curB && sessionStorage.getItem('vbr')!==m[1]){
+      sessionStorage.setItem('vbr',m[1]);
+      location.replace(location.pathname+'?v='+encodeURIComponent(m[1]));
+    }
+  }).catch(function(){});
+}
+}catch(e){}
+</script>
+</body></html>
